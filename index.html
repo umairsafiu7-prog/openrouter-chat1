@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ps" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenRouter Chat</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #212121;
+  color: white;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 270px;
+  background: #171717;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #333;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 25px;
+}
+
+.new-chat {
+  background: #303030;
+  color: white;
+  border: 1px solid #555;
+  padding: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: right;
+  font-size: 15px;
+}
+
+.new-chat:hover {
+  background: #414141;
+}
+
+.history {
+  margin-top: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.history-item {
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #ddd;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.history-item:hover {
+  background: #303030;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.topbar {
+  padding: 15px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar select {
+  background: #303030;
+  color: white;
+  border: 1px solid #555;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.welcome {
+  margin: auto;
+  text-align: center;
+  max-width: 500px;
+}
+
+.welcome h1 {
+  font-size: 30px;
+  margin-bottom: 15px;
+}
+
+.welcome p {
+  color: #aaa;
+  line-height: 1.8;
+}
+
+.message {
+  max-width: 80%;
+  padding: 14px 18px;
+  border-radius: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.user {
+  background: #303030;
+  align-self: flex-start;
+}
+
+.bot {
+  background: transparent;
+  align-self: flex-end;
+}
+
+.composer-area {
+  padding: 15px;
+  width: 100%;
+  max-width: 850px;
+  margin: auto;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  background: #303030;
+  border: 1px solid #555;
+  border-radius: 18px;
+  padding: 10px;
+  gap: 10px;
+}
+
+.composer textarea {
+  flex: 1;
+  resize: none;
+  background: transparent;
+  color: white;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  min-height: 35px;
+  max-height: 150px;
+  padding: 8px;
+  font-family: inherit;
+}
+
+.send {
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.send:hover {
+  background: #ddd;
+}
+
+.footer {
+  text-align: center;
+  color: #888;
+  font-size: 11px;
+  padding: 8px;
+}
+
+.mobile-menu {
+  display: none;
+  background: transparent;
+  color: white;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+@media(max-width:700px) {
+  .sidebar {
+    position: fixed;
+    right: -280px;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    transition: right .3s;
+  }
+
+  .sidebar.open {
+    right: 0;
+  }
+
+  .mobile-menu {
+    display: block;
+  }
+
+  .messages {
+    padding: 15px;
+  }
+
+  .message {
+    max-width: 95%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">🤖 OpenRouter Chat</div>
+
+    <button class="new-chat" onclick="newChat()">
+      ＋ نوې خبرې
+    </button>
+
+    <div class="history" id="history"></div>
+
+    <button class="new-chat" onclick="toggleTheme()">
+      🌙 / ☀️ بڼه بدلول
+    </button>
+  </aside>
+
+  <main class="main">
+
+    <header class="topbar">
+      <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+
+      <strong>OpenRouter AI</strong>
+
+      <select id="model">
+        <option value="">ماډل وټاکئ</option>
+        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+        <option value="google/gemini-2.0-flash">Gemini Flash</option>
+        <option value="deepseek/deepseek-chat">DeepSeek Chat</option>
+      </select>
+    </header>
+
+    <section class="messages" id="messages">
+
+      <div class="welcome" id="welcome">
+        <h1>سلام! 👋</h1>
+        <p>
+          زه ستاسو AI مرستیال یم.
+          خپله پوښتنه دلته ولیکئ.
+        </p>
+      </div>
+
+    </section>
+
+    <div class="composer-area">
+
+      <div class="composer">
+
+        <textarea
+          id="input"
+          placeholder="خپله پوښتنه ولیکئ..."
+          rows="1"
+          onkeydown="handleKey(event)"
+        ></textarea>
+
+        <button class="send" onclick="sendMessage()">➤</button>
+
+      </div>
+
+      <div class="footer">
+        AI ممکن تېروتنې وکړي. مهم معلومات تصدیق کړئ.
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<script>
+let chats = JSON.parse(localStorage.getItem("chats") || "[]");
+let currentChat = null;
+
+function saveChats() {
+  localStorage.setItem("chats", JSON.stringify(chats));
+}
+
+function newChat() {
+  currentChat = {
+    id: Date.now(),
+    title: "نوې خبرې",
+    messages: []
+  };
+
+  chats.unshift(currentChat);
+  saveChats();
+  renderHistory();
+  renderMessages();
+}
+
+function renderHistory() {
+  const history = document.getElementById("history");
+  history.innerHTML = "";
+
+  chats.forEach(chat => {
+    const item = document.createElement("div");
+    item.className = "history-item";
+    item.textContent = chat.title;
+
+    item.onclick = () => {
+      currentChat = chat;
+      renderMessages();
+    };
+
+    history.appendChild(item);
+  });
+}
+
+function renderMessages() {
+  const box = document.getElementById("messages");
+  box.innerHTML = "";
+
+  if (!currentChat || currentChat.messages.length === 0) {
+    box.innerHTML = `
+      <div class="welcome" id="welcome">
+        <h1>سلام! 👋</h1>
+        <p>خپله پوښتنه دلته ولیکئ.</p>
+      </div>
+    `;
+    return;
+  }
+
+  currentChat.messages.forEach(msg => {
+    const div = document.createElement("div");
+    div.className = "message " + msg.role;
+    div.textContent = msg.content;
+    box.appendChild(div);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendMessage() {
+  const input = document.getElementById("input");
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  if (!currentChat) newChat();
+
+  currentChat.messages.push({
+    role: "user",
+    content: text
+  });
+
+  if (currentChat.messages.length === 1) {
+    currentChat.title = text.slice(0, 30);
+  }
+
+  currentChat.messages.push({
+    role: "bot",
+    content: "⚠️ تر اوسه د AI API اتصال نه دی فعال شوی. وروسته به خوندي اتصال ورزیات کړو."
+  });
+
+  input.value = "";
+
+  saveChats();
+  renderHistory();
+  renderMessages();
+}
+
+function handleKey(event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("light");
+}
+
+renderHistory();
+</script>
+
+</body>
+</html>
